@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Audio Player</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Now playing bar -->
+    <header class="player-bar">
+      <div class="now-playing">
+        <div class="np-art" id="npArt">&#9835;</div>
+        <div class="np-info">
+          <div class="np-title" id="npTitle">Nothing playing</div>
+          <div class="np-album" id="npAlbum">Pick a song below</div>
+        </div>
+        <a class="manage-link" href="manage.html" title="Manage playlist">&#9881; Manage</a>
+        <a class="np-source" id="npSource" target="_blank" rel="noopener" hidden>&#128279; source</a>
+      </div>
+
+      <div class="controls">
+        <div class="transport">
+          <button id="prevBtn" title="Previous (P)">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M6 6h2v12H6zm12 0v12l-8.5-6z"/></svg>
+          </button>
+          <button id="playBtn" class="play" title="Play/Pause (Space)">
+            <svg id="playIcon" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" width="26" height="26" hidden><path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+          </button>
+          <button id="nextBtn" title="Next (N)">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 6h2v12h-2zM6 18V6l8.5 6z"/></svg>
+          </button>
+        </div>
+
+        <div class="timeline">
+          <span class="time" id="curTime">0:00</span>
+          <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Seek" />
+          <span class="time" id="durTime">0:00</span>
+        </div>
+
+        <div class="volume">
+          <button id="muteBtn" title="Mute (M)">&#128266;</button>
+          <input type="range" id="volume" min="0" max="1" value="1" step="0.01" aria-label="Volume" />
+        </div>
+      </div>
+    </header>
+
+    <!-- Playlist -->
+    <main class="playlist" id="playlist" aria-label="Playlist"></main>
+
+    <div class="error" id="error" hidden></div>
+    <audio id="audio" preload="metadata"></audio>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

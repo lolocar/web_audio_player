@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playlist Manager</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="manage.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="mgr-bar">
+      <div class="mgr-title">
+        <h1>Playlist Manager</h1>
+        <span class="badge" id="dirtyBadge" hidden>Unsaved changes</span>
+        <span class="badge ro" id="roBadge" hidden>Read-only &mdash; run <code>python server.py</code> to enable saving</span>
+      </div>
+      <div class="mgr-actions">
+        <a class="btn" href="index.html">&#9654; Player</a>
+        <button id="scanBtn" class="btn">Rescan audio folder</button>
+        <button id="addBtn" class="btn">+ Add track</button>
+        <button id="exportBtn" class="btn">Export JSON</button>
+        <button id="saveBtn" class="btn primary" disabled>Save</button>
+      </div>
+    </header>
+
+    <div class="stats" id="stats"></div>
+
+    <table class="tracks">
+      <thead>
+        <tr>
+          <th class="c-num">#</th>
+          <th class="c-title">Title</th>
+          <th class="c-album">Album</th>
+          <th class="c-source">Source</th>
+          <th class="c-file">Audio file</th>
+          <th class="c-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <div class="empty" id="empty" hidden>No tracks yet &mdash; rescan the audio folder or add one.</div>
+    <div class="error" id="error" hidden></div>
+    <audio id="preview" preload="auto"></audio>
+  </div>
+
+  <script src="manage.js"></script>
+</body>
+</html>
