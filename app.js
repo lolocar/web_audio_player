@@ -17,6 +17,8 @@ const durTimeEl = document.getElementById("durTime");
 const npTitle = document.getElementById("npTitle");
 const npAlbum = document.getElementById("npAlbum");
 const npSource = document.getElementById("npSource");
+const themeBtn = document.getElementById("themeBtn");
+const themeMenu = document.getElementById("themeMenu");
 
 let tracks = [];
 let currentIndex = -1;
@@ -289,7 +291,70 @@ document.addEventListener("keydown", e => {
   }
 });
 
+/* ---------- Theme ---------- */
+
+const THEMES = [
+  { id: "midnight", name: "Midnight", accent: "#4f8cff" },
+  { id: "light", name: "Light", accent: "#2563eb" },
+  { id: "forest", name: "Forest", accent: "#40c47c" },
+  { id: "sunset", name: "Sunset", accent: "#ef7a50" },
+];
+const THEME_KEY = "player-theme";
+
+function currentTheme() {
+  const id = document.documentElement.dataset.theme;
+  return THEMES.some(t => t.id === id) ? id : "midnight";
+}
+
+function applyTheme(id) {
+  document.documentElement.dataset.theme = id;
+  try { localStorage.setItem(THEME_KEY, id); } catch (e) { /* storage unavailable */ }
+  renderThemeMenu();
+}
+
+function renderThemeMenu() {
+  themeMenu.innerHTML = "";
+  const active = currentTheme();
+  THEMES.forEach(t => {
+    const opt = document.createElement("button");
+    opt.className = "theme-option" + (t.id === active ? " active" : "");
+
+    const swatch = document.createElement("span");
+    swatch.className = "theme-swatch";
+    swatch.style.background = t.accent;
+
+    const label = document.createElement("span");
+    label.textContent = t.name;
+
+    const check = document.createElement("span");
+    check.className = "theme-check";
+    check.hidden = t.id !== active;
+    check.textContent = "✓";
+
+    opt.append(swatch, label, check);
+    opt.addEventListener("click", () => {
+      applyTheme(t.id);
+      themeMenu.hidden = true;
+    });
+    themeMenu.appendChild(opt);
+  });
+}
+
+themeBtn.addEventListener("click", e => {
+  e.stopPropagation();
+  themeMenu.hidden = !themeMenu.hidden;
+});
+
+document.addEventListener("click", e => {
+  if (!themeMenu.hidden && !e.target.closest(".theme-picker")) themeMenu.hidden = true;
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") themeMenu.hidden = true;
+});
+
 /* ---------- Init ---------- */
+renderThemeMenu();
 loadPlaylist(false);
 setInterval(() => {
   if (!document.hidden) loadPlaylist(true); // pick up playlist.json changes

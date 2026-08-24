@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simple Audio Player</title>
   <link rel="stylesheet" href="style.css" />
+  <script>
+    // Apply the saved theme before first paint to avoid a flash
+    try {
+      var t = localStorage.getItem("player-theme");
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) { /* storage unavailable */ }
+  </script>
 </head>
 <body>
   <div class="app">
@@ -15,6 +22,10 @@
         <div class="np-info">
           <div class="np-title" id="npTitle">Nothing playing</div>
           <div class="np-album" id="npAlbum">Pick a song below</div>
+        </div>
+        <div class="theme-picker">
+          <button id="themeBtn" title="Color theme">&#127912;</button>
+          <div class="theme-menu" id="themeMenu" hidden></div>
         </div>
         <a class="manage-link" href="manage.html" title="Manage playlist">&#9881; Manage</a>
         <a class="np-source" id="npSource" target="_blank" rel="noopener" hidden>&#128279; source</a>
