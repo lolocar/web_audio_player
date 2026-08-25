@@ -97,6 +97,8 @@ Shows every track in `library.json` with a checkbox — checked means it's in
 - Toggle checkboxes to build the playlist; **Select all** / **Deselect all**
   apply to the whole library
 - `▶` preview a track
+- `✕` delete a track — after a confirmation, removes it from `library.json`
+  and `playlist.json` **and deletes the audio file from disk**
 - **Rescan audio folder** — re-scans `audio/` into `library.json`, keeps saved
   titles/albums/source links for files that still exist, adds new files, and
   drops deleted ones from both `library.json` and `playlist.json`
@@ -113,6 +115,7 @@ Shows every track in `library.json` with a checkbox — checked means it's in
 | `GET` | `/api/playlist` | Return `playlist.json` |
 | `POST` | `/api/playlist` | Save body (JSON array) as `playlist.json` |
 | `POST` | `/api/scan` | Rescan `audio/` into `library.json`, prune `playlist.json`, return both |
+| `POST` | `/api/delete` | Remove `{"audio": …}` from both JSON files and delete the file from disk (paths outside `audio/` are refused) |
 
 ## Controls
 

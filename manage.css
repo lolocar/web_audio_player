@@ -133,7 +133,7 @@ table.tracks {
 .c-album { width: 16%; }
 .c-source { width: 22%; }
 .c-file { width: 28%; }
-.c-actions { width: 52px; white-space: nowrap; }
+.c-actions { width: 84px; white-space: nowrap; }
 
 .c-title, .c-album, .c-source {
   overflow: hidden;
@@ -162,4 +162,9 @@ table.tracks {
   border-radius: 6px;
   font-size: 11px;
   line-height: 1;
+}
+
+.c-actions button.danger:hover {
+  color: #ff6b6b;
+  background: rgba(255, 80, 80, 0.12);
 }

@@ -146,13 +146,48 @@ function makeRow(t, i) {
 
   const tdAct = document.createElement("td");
   tdAct.className = "c-actions";
-  const b = document.createElement("button");
-  b.textContent = "▶";
-  b.title = "Preview";
-  b.addEventListener("click", () => togglePreview(i));
-  tdAct.appendChild(b);
+
+  const mkBtn = (text, title, fn, extraCls) => {
+    const b = document.createElement("button");
+    b.textContent = text;
+    b.title = title;
+    if (extraCls) b.className = extraCls;
+    b.addEventListener("click", fn);
+    return b;
+  };
+
+  tdAct.append(
+    mkBtn("▶", "Preview", () => togglePreview(i)),
+    mkBtn("✕", "Delete track and audio file", () => deleteTrack(i, t), "danger"),
+  );
   tr.appendChild(tdAct);
   return tr;
+}
+
+/* ---------- Delete ---------- */
+
+async function deleteTrack(i, t) {
+  if (!api) return;
+  const ok = confirm("Delete “" + t.title + "”?\n" +
+    "This also deletes the audio file from disk.");
+  if (!ok) return;
+  try {
+    const res = await fetch("/api/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audio: t.audio }),
+    });
+    const out = await res.json();
+    if (!res.ok || !out.ok) throw new Error(out.error || "HTTP " + res.status);
+    library = (out.tracks || []).map(normalize);
+    selected = new Set((out.playlist || []).map(x => x.audio));
+    if (previewIndex === i) stopPreview();
+    clearError();
+    render();
+    setDirty(false); // server already persisted the result
+  } catch (err) {
+    showError("Delete failed: " + err.message);
+  }
 }
 
 /* ---------- Selection ---------- */

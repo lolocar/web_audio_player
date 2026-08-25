@@ -8,6 +8,9 @@ Serves the site and exposes:
     POST /api/scan       -> rescan audio/ folder, regenerate library.json
                             (keeping saved title/album/source for known files),
                             prune playlist.json, save both
+    POST /api/delete     -> remove a track ({audio: ...} body) from
+                            library.json and playlist.json, and delete the
+                            audio file from disk
 
 Host/port can be set in server.json, overridden on the command line:
 
@@ -20,7 +23,9 @@ import json
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from scan import scan, prune_playlist  # reuse the folder scanner
+from urllib.parse import unquote
+
+from scan import scan, prune_playlist, AUDIO_DIR  # reuse the folder scanner
 
 ROOT = Path(__file__).parent
 LIBRARY = ROOT / "library.json"
@@ -69,6 +74,14 @@ def save(path, tracks):
                     encoding="utf-8")
 
 
+def resolve_audio(url):
+    """Map a track's audio path to a file, refusing anything outside audio/."""
+    path = (ROOT / unquote(url)).resolve()
+    if not path.is_relative_to(AUDIO_DIR.resolve()):
+        raise ValueError("path is outside the audio folder")
+    return path
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -109,6 +122,39 @@ class Handler(SimpleHTTPRequestHandler):
             playlist = normalize(prune_playlist(tracks))
             self._json({"ok": True, "count": len(tracks),
                         "tracks": tracks, "playlist": playlist})
+
+        elif self.path == "/api/delete":
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except ValueError:
+                self._json({"ok": False, "error": "invalid JSON body"}, 400)
+                return
+            url = str(data.get("audio", "")).strip() if isinstance(data, dict) else ""
+            if not url:
+                self._json({"ok": False, "error": "missing audio path"}, 400)
+                return
+            try:
+                path = resolve_audio(url)
+            except ValueError as e:
+                self._json({"ok": False, "error": str(e)}, 400)
+                return
+            library = normalize(load(LIBRARY))
+            playlist = normalize(load(PLAYLIST))
+            if not any(t["audio"] == url for t in library) and \
+               not any(t["audio"] == url for t in playlist):
+                self._json({"ok": False, "error": "track not found in library"}, 404)
+                return
+            try:
+                if path.exists():
+                    path.unlink()
+            except OSError as e:
+                self._json({"ok": False, "error": "could not delete file: %s" % e}, 500)
+                return
+            library = [t for t in library if t["audio"] != url]
+            playlist = [t for t in playlist if t["audio"] != url]
+            save(LIBRARY, library)
+            save(PLAYLIST, playlist)
+            self._json({"ok": True, "tracks": library, "playlist": playlist})
 
         else:
             self._json({"ok": False, "error": "not found"}, 404)
