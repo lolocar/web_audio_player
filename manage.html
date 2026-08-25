@@ -18,9 +18,10 @@
       <div class="mgr-actions">
         <a class="btn" href="index.html">&#9654; Player</a>
         <button id="scanBtn" class="btn">Rescan audio folder</button>
-        <button id="addBtn" class="btn">+ Add track</button>
+        <button id="selectAllBtn" class="btn">Select all</button>
+        <button id="deselectAllBtn" class="btn">Deselect all</button>
         <button id="exportBtn" class="btn">Export JSON</button>
-        <button id="saveBtn" class="btn primary" disabled>Save</button>
+        <button id="saveBtn" class="btn primary" disabled>Save playlist</button>
       </div>
     </header>
 
@@ -29,6 +30,7 @@
     <table class="tracks">
       <thead>
         <tr>
+          <th class="c-check" title="Included in playlist"></th>
           <th class="c-num">#</th>
           <th class="c-title">Title</th>
           <th class="c-album">Album</th>
@@ -40,7 +42,7 @@
       <tbody id="tbody"></tbody>
     </table>
 
-    <div class="empty" id="empty" hidden>No tracks yet &mdash; rescan the audio folder or add one.</div>
+    <div class="empty" id="empty" hidden>No tracks in the library &mdash; rescan the audio folder.</div>
     <div class="error" id="error" hidden></div>
     <audio id="preview" preload="auto"></audio>
   </div>

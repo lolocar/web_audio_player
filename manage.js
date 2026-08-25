@@ -8,13 +8,17 @@ const dirtyBadge = document.getElementById("dirtyBadge");
 const roBadge = document.getElementById("roBadge");
 const saveBtn = document.getElementById("saveBtn");
 const scanBtn = document.getElementById("scanBtn");
-const addBtn = document.getElementById("addBtn");
+const selectAllBtn = document.getElementById("selectAllBtn");
+const deselectAllBtn = document.getElementById("deselectAllBtn");
 const exportBtn = document.getElementById("exportBtn");
 const preview = document.getElementById("preview");
 
-let tracks = [];
-let dirty = false;
+// library: every track in library.json
+// selected: audio paths that belong in playlist.json (the checked boxes)
+let library = [];
+let selected = new Set();
 let api = false;
+let dirty = false;
 let previewIndex = -1;
 
 /* ---------- UI helpers ---------- */
@@ -43,23 +47,31 @@ function normalize(t) {
   };
 }
 
+function selectedTracks() {
+  return library.filter(t => selected.has(t.audio));
+}
+
 /* ---------- Load ---------- */
 
 async function load() {
   try {
-    const res = await fetch("/api/playlist", { cache: "no-cache" });
+    const res = await fetch("/api/library", { cache: "no-cache" });
     if (!res.ok) throw new Error("no API");
     api = true;
-    tracks = (await res.json()).map(normalize);
+    library = (await res.json()).map(normalize);
+    const plRes = await fetch("/api/playlist", { cache: "no-cache" });
+    selected = new Set((plRes.ok ? await plRes.json() : []).map(t => t.audio));
   } catch {
-    // No server.py — fall back to the static playlist.json (read-only).
+    // No server.py — fall back to the static JSON files (read-only).
     api = false;
     try {
-      const res = await fetch("playlist.json", { cache: "no-cache" });
-      tracks = (await res.json()).map(normalize);
+      library = (await (await fetch("library.json", { cache: "no-cache" })).json()).map(normalize);
+      const pl = await (await fetch("playlist.json", { cache: "no-cache" })).json();
+      selected = new Set(pl.map(t => t.audio));
     } catch (err) {
-      showError("Failed to load playlist.json: " + err.message);
-      tracks = [];
+      showError("Failed to load library.json: " + err.message);
+      library = [];
+      selected = new Set();
     }
   }
   roBadge.hidden = api;
@@ -72,93 +84,83 @@ async function load() {
 
 function render() {
   tbody.innerHTML = "";
-  tracks.forEach((t, i) => tbody.appendChild(makeRow(t, i)));
-  emptyEl.hidden = tracks.length > 0;
-
-  const albums = new Set(tracks.map(t => t.album).filter(Boolean));
-  statsEl.textContent =
-    tracks.length + " track" + (tracks.length === 1 ? "" : "s") +
-    (albums.size ? " · " + albums.size + " album" + (albums.size === 1 ? "" : "s") : "");
+  library.forEach((t, i) => tbody.appendChild(makeRow(t, i)));
+  emptyEl.hidden = library.length > 0;
+  updateStats();
   updatePreviewRow();
+}
+
+function updateStats() {
+  const albums = new Set(library.map(t => t.album).filter(Boolean));
+  statsEl.textContent =
+    library.length + " track" + (library.length === 1 ? "" : "s") + " in library · " +
+    selected.size + " in playlist" +
+    (albums.size ? " · " + albums.size + " album" + (albums.size === 1 ? "" : "s") : "");
 }
 
 function makeRow(t, i) {
   const tr = document.createElement("tr");
   tr.dataset.index = i;
+  if (selected.has(t.audio)) tr.classList.add("in-playlist");
 
-  const tdNum = document.createElement("td");
-  tdNum.className = "c-num";
-  tdNum.textContent = i + 1;
+  const tdCheck = document.createElement("td");
+  tdCheck.className = "c-check";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = selected.has(t.audio);
+  cb.addEventListener("change", () => {
+    if (cb.checked) selected.add(t.audio); else selected.delete(t.audio);
+    tr.classList.toggle("in-playlist", cb.checked);
+    updateStats();
+    setDirty(true);
+  });
+  tdCheck.appendChild(cb);
 
-  const mkInput = (cls, key, placeholder) => {
+  const mkTd = (cls, text) => {
     const td = document.createElement("td");
     td.className = cls;
-    const input = document.createElement("input");
-    input.value = t[key];
-    input.placeholder = placeholder || "";
-    input.spellcheck = false;
-    input.addEventListener("input", () => {
-      tracks[i][key] = input.value;
-      setDirty(true);
-    });
-    td.appendChild(input);
+    td.textContent = text;
+    if (text) td.title = text;
     return td;
   };
 
+  const tdSrc = document.createElement("td");
+  tdSrc.className = "c-source";
+  if (t.source) {
+    const a = document.createElement("a");
+    a.href = t.source;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = t.source;
+    tdSrc.appendChild(a);
+  }
+
   tr.append(
-    tdNum,
-    mkInput("c-title", "title", "Song title"),
-    mkInput("c-album", "album", "Album"),
-    mkInput("c-source", "source", "https://… (optional)"),
-    mkInput("c-file", "audio", "audio/path/to/file.mp3"),
+    tdCheck,
+    mkTd("c-num", String(i + 1)),
+    mkTd("c-title", t.title),
+    mkTd("c-album", t.album),
+    tdSrc,
+    mkTd("c-file", t.audio),
   );
 
   const tdAct = document.createElement("td");
   tdAct.className = "c-actions";
-
-  const mkBtn = (text, title, fn, extraCls) => {
-    const b = document.createElement("button");
-    b.textContent = text;
-    b.title = title;
-    if (extraCls) b.className = extraCls;
-    b.addEventListener("click", fn);
-    return b;
-  };
-
-  tdAct.append(
-    mkBtn("▶", "Preview", () => togglePreview(i)),
-    mkBtn("▲", "Move up", () => move(i, -1)),
-    mkBtn("▼", "Move down", () => move(i, 1)),
-    mkBtn("✕", "Delete", () => removeTrack(i), "danger"),
-  );
+  const b = document.createElement("button");
+  b.textContent = "▶";
+  b.title = "Preview";
+  b.addEventListener("click", () => togglePreview(i));
+  tdAct.appendChild(b);
   tr.appendChild(tdAct);
   return tr;
 }
 
-/* ---------- Mutations ---------- */
+/* ---------- Selection ---------- */
 
-function move(i, delta) {
-  const j = i + delta;
-  if (j < 0 || j >= tracks.length) return;
-  [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
-  stopPreview();
+function setAllSelection(on) {
+  selected = on ? new Set(library.map(t => t.audio)) : new Set();
   render();
   setDirty(true);
-}
-
-function removeTrack(i) {
-  tracks.splice(i, 1);
-  stopPreview();
-  render();
-  setDirty(true);
-}
-
-function addTrack() {
-  tracks.push({ audio: "", title: "", album: "", source: "" });
-  render();
-  setDirty(true);
-  const rows = tbody.querySelectorAll("tr .c-title input");
-  if (rows.length) rows[rows.length - 1].focus();
 }
 
 /* ---------- Save / scan / export ---------- */
@@ -170,11 +172,11 @@ async function save() {
     const res = await fetch("/api/playlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(tracks),
+      body: JSON.stringify(selectedTracks()),
     });
     const out = await res.json();
     if (!res.ok || !out.ok) throw new Error(out.error || "HTTP " + res.status);
-    tracks = (out.tracks || tracks).map(normalize);
+    selected = new Set((out.tracks || []).map(t => t.audio));
     clearError();
     render();
     setDirty(false);
@@ -190,7 +192,8 @@ async function scanFolder() {
     const res = await fetch("/api/scan", { method: "POST" });
     const out = await res.json();
     if (!res.ok || !out.ok) throw new Error(out.error || "HTTP " + res.status);
-    tracks = out.tracks.map(normalize);
+    library = (out.tracks || []).map(normalize);
+    selected = new Set((out.playlist || []).map(t => t.audio));
     clearError();
     stopPreview();
     render();
@@ -203,7 +206,7 @@ async function scanFolder() {
 }
 
 function exportJson() {
-  const blob = new Blob([JSON.stringify(tracks, null, 2) + "\n"], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(selectedTracks(), null, 2) + "\n"], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "playlist.json";
@@ -219,7 +222,7 @@ function togglePreview(i) {
     return;
   }
   previewIndex = i;
-  preview.src = tracks[i].audio;
+  preview.src = library[i].audio;
   preview.play().catch(err => showError("Preview error: " + err.message));
   updatePreviewRow();
 }
@@ -240,7 +243,8 @@ function updatePreviewRow() {
 
 saveBtn.addEventListener("click", save);
 scanBtn.addEventListener("click", scanFolder);
-addBtn.addEventListener("click", addTrack);
+selectAllBtn.addEventListener("click", () => setAllSelection(true));
+deselectAllBtn.addEventListener("click", () => setAllSelection(false));
 exportBtn.addEventListener("click", exportJson);
 preview.addEventListener("ended", stopPreview);
 

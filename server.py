@@ -2,10 +2,12 @@
 """Static file server + small playlist API.
 
 Serves the site and exposes:
+    GET  /api/library    -> current library.json
     GET  /api/playlist   -> current playlist.json
     POST /api/playlist   -> save playlist (JSON array body)
-    POST /api/scan       -> rescan audio/ folder, keep saved title/album/source
-                            for known files, save result
+    POST /api/scan       -> rescan audio/ folder, regenerate library.json
+                            (keeping saved title/album/source for known files),
+                            prune playlist.json, save both
 
 Host/port can be set in server.json, overridden on the command line:
 
@@ -18,9 +20,10 @@ import json
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from scan import scan  # reuse the folder scanner
+from scan import scan, prune_playlist  # reuse the folder scanner
 
 ROOT = Path(__file__).parent
+LIBRARY = ROOT / "library.json"
 PLAYLIST = ROOT / "playlist.json"
 CONFIG = ROOT / "server.json"
 
@@ -36,15 +39,15 @@ def load_config():
         return {}
 
 
-def load():
+def load(path):
     try:
-        return json.loads(PLAYLIST.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
 
 
-def save(tracks):
-    """Validate/normalize and write playlist.json. Returns the cleaned list."""
+def normalize(tracks):
+    """Validate/normalize a list of track dicts. Returns the cleaned list."""
     cleaned = []
     for t in tracks:
         if not isinstance(t, dict):
@@ -58,11 +61,12 @@ def save(tracks):
             "album": str(t.get("album", "")).strip(),
             "source": str(t.get("source", "")).strip(),
         })
-    PLAYLIST.write_text(
-        json.dumps(cleaned, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
     return cleaned
+
+
+def save(path, tracks):
+    path.write_text(json.dumps(tracks, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8")
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -78,8 +82,10 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        if self.path == "/api/playlist":
-            self._json(load())
+        if self.path == "/api/library":
+            self._json(normalize(load(LIBRARY)))
+        elif self.path == "/api/playlist":
+            self._json(normalize(load(PLAYLIST)))
         else:
             super().do_GET()
 
@@ -93,21 +99,16 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 self._json({"ok": False, "error": "invalid JSON body"}, 400)
                 return
-            cleaned = save(data)
+            cleaned = normalize(data)
+            save(PLAYLIST, cleaned)
             self._json({"ok": True, "count": len(cleaned), "tracks": cleaned})
 
         elif self.path == "/api/scan":
-            existing = {t.get("audio"): t for t in load() if isinstance(t, dict)}
-            merged = []
-            for t in scan():
-                prev = existing.get(t["audio"])
-                if prev:  # keep user edits for files that still exist
-                    t["title"] = prev.get("title") or t["title"]
-                    t["album"] = prev.get("album") or t["album"]
-                    t["source"] = prev.get("source", "")
-                merged.append(t)
-            save(merged)
-            self._json({"ok": True, "count": len(merged), "tracks": merged})
+            tracks = scan()
+            save(LIBRARY, tracks)
+            playlist = normalize(prune_playlist(tracks))
+            self._json({"ok": True, "count": len(tracks),
+                        "tracks": tracks, "playlist": playlist})
 
         else:
             self._json({"ok": False, "error": "not found"}, 404)

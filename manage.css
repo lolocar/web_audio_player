@@ -109,6 +109,19 @@ table.tracks {
   background: var(--accent-soft);
 }
 
+.c-check {
+  width: 28px;
+  text-align: center;
+}
+
+.c-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .c-num {
   width: 36px;
   color: var(--text-dim);
@@ -116,33 +129,32 @@ table.tracks {
   font-variant-numeric: tabular-nums;
 }
 
-.c-title { width: 22%; }
-.c-album { width: 17%; }
-.c-source { width: 24%; }
-.c-file { width: 23%; }
-.c-actions { width: 108px; white-space: nowrap; }
+.c-title { width: 18%; }
+.c-album { width: 16%; }
+.c-source { width: 22%; }
+.c-file { width: 28%; }
+.c-actions { width: 52px; white-space: nowrap; }
 
-.tracks input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  border-radius: 0;
-  color: var(--text);
-  font-size: 13px;
-  font-family: inherit;
-  padding: 4px 2px;
+.c-title, .c-album, .c-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.tracks input:focus {
-  outline: none;
-  border-bottom-color: var(--accent);
-  background: rgba(255, 255, 255, 0.03);
+.c-source a {
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+  white-space: normal;
 }
 
-.tracks input::placeholder {
+.c-source a:hover { text-decoration: underline; }
+
+.c-file {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
   color: var(--text-dim);
-  opacity: 0.5;
+  word-break: break-all;
 }
 
 .c-actions button {
@@ -150,9 +162,4 @@ table.tracks {
   border-radius: 6px;
   font-size: 11px;
   line-height: 1;
-}
-
-.c-actions button.danger:hover {
-  color: #ff6b6b;
-  background: rgba(255, 80, 80, 0.12);
 }

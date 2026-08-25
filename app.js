@@ -9,6 +9,8 @@ const playIcon = document.getElementById("playIcon");
 const pauseIcon = document.getElementById("pauseIcon");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
+const repeatBtn = document.getElementById("repeatBtn");
 const seekEl = document.getElementById("seek");
 const volEl = document.getElementById("volume");
 const muteBtn = document.getElementById("muteBtn");
@@ -22,6 +24,8 @@ const themeMenu = document.getElementById("themeMenu");
 
 let tracks = [];
 let currentIndex = -1;
+let shuffle = false;
+let repeat = "off"; // "off" (stop at end) | "all" (wrap) | "one" (repeat track)
 
 /* ---------- Helpers ---------- */
 
@@ -178,16 +182,22 @@ function updateNowPlaying() {
     npTitle.textContent = "Nothing playing";
     npAlbum.textContent = "Pick a song below";
     npSource.hidden = true;
-    return;
-  }
-  npTitle.textContent = t.title;
-  npAlbum.textContent = t.album || "";
-  if (t.source) {
-    npSource.href = t.source;
-    npSource.hidden = false;
   } else {
-    npSource.hidden = true;
+    npTitle.textContent = t.title;
+    npAlbum.textContent = t.album || "";
+    if (t.source) {
+      npSource.href = t.source;
+      npSource.hidden = false;
+    } else {
+      npSource.hidden = true;
+    }
   }
+  updateTitle();
+}
+
+function updateTitle() {
+  const t = tracks[currentIndex];
+  document.title = t && !audio.paused ? "webPod - " + t.title : "webPod";
 }
 
 function togglePlay() {
@@ -201,8 +211,17 @@ function togglePlay() {
   }
 }
 
+function nextIndex() {
+  if (shuffle && tracks.length > 1) {
+    let i;
+    do { i = Math.floor(Math.random() * tracks.length); } while (i === currentIndex);
+    return i;
+  }
+  return (currentIndex + 1) % tracks.length;
+}
+
 function nextTrack() {
-  if (tracks.length) playTrack((currentIndex + 1) % tracks.length);
+  if (tracks.length) playTrack(nextIndex());
 }
 
 function prevTrack() {
@@ -218,16 +237,29 @@ function prevTrack() {
 playBtn.addEventListener("click", togglePlay);
 nextBtn.addEventListener("click", nextTrack);
 prevBtn.addEventListener("click", prevTrack);
+shuffleBtn.addEventListener("click", toggleShuffle);
+repeatBtn.addEventListener("click", cycleRepeat);
 
 audio.addEventListener("play", () => {
   playIcon.hidden = true;
   pauseIcon.hidden = false;
+  updateTitle();
 });
 audio.addEventListener("pause", () => {
   playIcon.hidden = false;
   pauseIcon.hidden = true;
+  updateTitle();
 });
-audio.addEventListener("ended", nextTrack);
+audio.addEventListener("ended", () => {
+  if (repeat === "one") {
+    audio.currentTime = 0;
+    audio.play().catch(err => showError("Playback error: " + err.message));
+    return;
+  }
+  // "off" stops at the last track (shuffle has no "end")
+  if (repeat === "off" && !shuffle && currentIndex === tracks.length - 1) return;
+  nextTrack();
+});
 audio.addEventListener("error", () => {
   if (currentIndex !== -1) showError("Could not load audio: " + audio.src);
 });
@@ -265,6 +297,20 @@ function updateMuteIcon() {
   muteBtn.textContent = muted ? "\u{1F507}" : "\u{1F50A}";
 }
 
+function toggleShuffle() {
+  shuffle = !shuffle;
+  shuffleBtn.classList.toggle("on", shuffle);
+  shuffleBtn.title = "Shuffle (" + (shuffle ? "on" : "off") + ")";
+}
+
+const REPEAT_TITLES = { off: "Repeat (off)", all: "Repeat all", one: "Repeat one" };
+function cycleRepeat() {
+  repeat = repeat === "off" ? "all" : repeat === "all" ? "one" : "off";
+  repeatBtn.classList.toggle("on", repeat !== "off");
+  repeatBtn.classList.toggle("one", repeat === "one");
+  repeatBtn.title = REPEAT_TITLES[repeat];
+}
+
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT") return;
   switch (e.code) {
@@ -287,6 +333,12 @@ document.addEventListener("keydown", e => {
     case "KeyM":
       audio.muted = !audio.muted;
       updateMuteIcon();
+      break;
+    case "KeyS":
+      toggleShuffle();
+      break;
+    case "KeyR":
+      cycleRepeat();
       break;
   }
 });

@@ -175,6 +175,12 @@ button.play {
 
 button.play:hover { background: var(--accent-hover); color: #fff; }
 
+/* shuffle / repeat mode toggles */
+.mode-btn.on { color: var(--accent); }
+.mode-btn.on:hover { color: var(--accent-hover); }
+.mode-btn .rep-1 { display: none; }
+.mode-btn.one .rep-1 { display: inline; }
+
 .timeline {
   flex: 1;
   display: flex;
