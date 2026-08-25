@@ -129,9 +129,9 @@ table.tracks {
   font-variant-numeric: tabular-nums;
 }
 
-.c-title { width: 24%; }
-.c-album { width: 16%; }
-.c-source { width: 30%; }
+.c-title { width: 30%; }
+.c-album { width: 18%; }
+.c-source { width: 10%; }
 .c-file { width: 12%; }
 .c-actions { width: 84px; white-space: nowrap; }
 
@@ -144,8 +144,6 @@ table.tracks {
 .c-source a {
   color: var(--accent);
   text-decoration: none;
-  word-break: break-all;
-  white-space: normal;
 }
 
 .c-source a:hover { text-decoration: underline; }

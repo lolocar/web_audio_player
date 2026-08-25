@@ -133,7 +133,8 @@ function makeRow(t, i) {
     a.href = t.source;
     a.target = "_blank";
     a.rel = "noopener";
-    a.textContent = t.source;
+    a.textContent = "Link";
+    a.title = t.source;
     tdSrc.appendChild(a);
   }
 
