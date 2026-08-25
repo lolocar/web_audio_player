@@ -111,7 +111,7 @@ Shows every track in `library.json` with a checkbox — checked means it's in
 
 | Method | Path | Effect |
 |---|---|---|
-| `GET` | `/api/library` | Return `library.json` |
+| `GET` | `/api/library` | Return `library.json`, each track with an `exists` flag for its audio file |
 | `GET` | `/api/playlist` | Return `playlist.json` |
 | `POST` | `/api/playlist` | Save body (JSON array) as `playlist.json` |
 | `POST` | `/api/scan` | Rescan `audio/` into `library.json`, prune `playlist.json`, return both |

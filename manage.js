@@ -44,6 +44,8 @@ function normalize(t) {
     title: String(t.title || "").trim(),
     album: String(t.album || "").trim(),
     source: String(t.source || "").trim(),
+    // true/false from the server; null when unknown (static fallback)
+    exists: typeof t.exists === "boolean" ? t.exists : null,
   };
 }
 
@@ -135,13 +137,18 @@ function makeRow(t, i) {
     tdSrc.appendChild(a);
   }
 
+  const tdFile = document.createElement("td");
+  tdFile.className = "c-file" + (t.exists === false ? " missing" : "");
+  tdFile.textContent = t.exists === true ? "yes" : t.exists === false ? "no" : "–";
+  tdFile.title = t.audio;
+
   tr.append(
     tdCheck,
     mkTd("c-num", String(i + 1)),
     mkTd("c-title", t.title),
     mkTd("c-album", t.album),
     tdSrc,
-    mkTd("c-file", t.audio),
+    tdFile,
   );
 
   const tdAct = document.createElement("td");

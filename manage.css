@@ -129,10 +129,10 @@ table.tracks {
   font-variant-numeric: tabular-nums;
 }
 
-.c-title { width: 18%; }
+.c-title { width: 24%; }
 .c-album { width: 16%; }
-.c-source { width: 22%; }
-.c-file { width: 28%; }
+.c-source { width: 30%; }
+.c-file { width: 12%; }
 .c-actions { width: 84px; white-space: nowrap; }
 
 .c-title, .c-album, .c-source {
@@ -151,11 +151,10 @@ table.tracks {
 .c-source a:hover { text-decoration: underline; }
 
 .c-file {
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 11px;
   color: var(--text-dim);
-  word-break: break-all;
 }
+
+.c-file.missing { color: var(--error-text); }
 
 .c-actions button {
   padding: 3px 7px;

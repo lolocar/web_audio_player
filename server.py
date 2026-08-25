@@ -82,6 +82,18 @@ def resolve_audio(url):
     return path
 
 
+def with_exists(tracks):
+    """Return tracks with an 'exists' flag for their audio file."""
+    out = []
+    for t in tracks:
+        try:
+            exists = resolve_audio(t["audio"]).exists()
+        except ValueError:
+            exists = False
+        out.append({**t, "exists": exists})
+    return out
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -96,7 +108,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/library":
-            self._json(normalize(load(LIBRARY)))
+            self._json(with_exists(normalize(load(LIBRARY))))
         elif self.path == "/api/playlist":
             self._json(normalize(load(PLAYLIST)))
         else:
@@ -121,7 +133,7 @@ class Handler(SimpleHTTPRequestHandler):
             save(LIBRARY, tracks)
             playlist = normalize(prune_playlist(tracks))
             self._json({"ok": True, "count": len(tracks),
-                        "tracks": tracks, "playlist": playlist})
+                        "tracks": with_exists(tracks), "playlist": playlist})
 
         elif self.path == "/api/delete":
             try:
@@ -154,7 +166,8 @@ class Handler(SimpleHTTPRequestHandler):
             playlist = [t for t in playlist if t["audio"] != url]
             save(LIBRARY, library)
             save(PLAYLIST, playlist)
-            self._json({"ok": True, "tracks": library, "playlist": playlist})
+            self._json({"ok": True, "tracks": with_exists(library),
+                        "playlist": playlist})
 
         else:
             self._json({"ok": False, "error": "not found"}, 404)
